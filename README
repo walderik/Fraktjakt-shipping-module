@@ -168,6 +168,6 @@ For more information, please download the latest version Fraktjakt's API-documen
 http://www.fraktjakt.se/services/download
 
 Don't forget to generate rdoc
-rake rdoc
+rake doc:plugins
 
 Copyright (c) 2010 [Mats Bergström], released under the MIT license

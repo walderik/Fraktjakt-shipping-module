@@ -39,7 +39,7 @@ module Fraktjakt #:nodoc:
     
     
     
-    # The Method to find the best way to ship from Fraktjakt
+    # The Method to find the best shipment from Fraktjakt
     #
     #     To do a freight query follow these steps:
     #
@@ -59,7 +59,7 @@ module Fraktjakt #:nodoc:
     #                     :residential => true               # If it is a residential-address or a company-address
     #                  }
     #    
-    #    3. Do a search-call
+    #    3. Do a search-call. Available options are listed below.
     #          begin
     #            @shipment_id, @warning, @res = fraktjakt.shipment(:express => false, :value => 4, :address => address)
     #          rescue Fraktjakt::FraktjaktError
@@ -86,6 +86,26 @@ module Fraktjakt #:nodoc:
     #    
     #   From the result you link to the order-action that will create an order in Fraktjakt.
     #
+    # 
+    #   Available optional options are:
+    #     Boolean
+    #       Express   : If true, only express-products will be returned. If false, all products will be returned.
+    #       Pickup    : If true, only products including pickup will be returned. If false, all products will be returned.
+    #       dropoff   : If true, only products including dropoff will be returned. If false, all products will be returned.
+    #       green     : If true, only green.marked products are returned. If false, all products will be returned.
+    #       quality   : If true, only quality-marked products are returned. If false, all products will be returned.
+    #       time_guarantie : If true, only products including time_guarantie will be returned. If false, all products will be returned.
+    #       cold      : If true, only products spially handling cold products will be returned. If false, no such products will be returned.
+    #       frozen    : If true, only products spially handling frozen products will be returned. If false, no such products will be returned.
+    #       no_agents : If true, no information about closest agents and no links to them will be returned. This is a faster query. If false, all agent info will be returned.
+    #       no_price  : If true, no price-information in the result will be returned. This is a faster query. If false, all price-info will be returned.
+    #     
+    #     Integer
+    #       shipping_product_id : If provided, the shipment-method will only search for this product. A whole list of avalible ID can be found at:
+    #                             http://www.fraktjakt.se/shipping_products/xml_list
+    #
+    #     Float
+    #       value     : The cummulative value of all items in the shipment.
     def shipment(options = {})
       options[:value] = '1.0' if options[:value].blank? || options[:value].to_f < 1
       RAILS_DEFAULT_LOGGER.debug "--> parcels = #{@parcels}" if @debug
@@ -149,24 +169,55 @@ module Fraktjakt #:nodoc:
     #    3. Create a recipient-Hash
     #          recipient = { :name_to => 'Lina Sandell',      # You have to provide :name_to or :company_to
     #                        :company_to => 'Kottegott',   
-    #                        :telephone_to => '0733-710252',  # You should prive as much info how to contact the recipient as possible.
-    #                        :mobile_to =>  '0733-710252',    # :telephone_to is the most important way, but _email_to is also very inportant.
-    #                        :email_to => 'mats@sverok.se'    # At least one method is needed.
+    #                        :telephone_to => '0733-710252',  # You should provide as much info how to contact the recipient as possible.
+    #                        :mobile_to =>  '0733-710252',    # :telephone_to is the most important info, but _email_to is also very inportant.
+    #                        :email_to => 'mats@sverok.se'    # At least one method is required.
     #                      }
     #
     #    4. Add the commodities (varuslagen)
-    #         fraktjakt.add_commodity(:name => 'Yllesocka', :quantity=>2)
+    #         fraktjakt.add_commodity(:name => 'Yllesocka', :quantity=>2)  # See add_commodity for alla available and needed options.
     #
+    #    5. You may now create a bokking_hash. This is optional and if booking is needed, but not prrovided, the settings for the webshop will be used.
+    #       this is the recomended way to handle bookings.
+    #         booking = {  :driving_instruction => 'Hit och dit', # Optional
+    #                      :user_notes => 'You must call me at 0733-710252',  # Optional 
+    #                      :pickup_date => '2010-10-07', # Optional : This must be a working-date in the future and in the format (YYYY-MM-DD)
+    #                      :ready_time => '07:00',       # Optional : This time should be as early as possible, and it must be in the future and be of the format (HH:MM)
+    #                      :close_time => '18:00'        # Optional : his time should be as late in the afternoon as possible, and it must be in the future and be of the format (HH:MM)
+    #                   }
+    #   
     #    5. Create the order.
     #        begin
     #          @shipment_id, @warning, @order_id = fraktjakt.order(:value => 4, :shipping_product_id=> shipping_product_id, :recipient => recipient, :shipment_id => @shipment_id)
     #        rescue Fraktjakt::FraktjaktError
     #          @error_message = $!
     #        end
+    #
     #        The result is easy to handle and you just have to present the new order_id
     #    
     #    Note that you can reuse a shipment_id several times from a freight-query. 
     #    If you reuse an old shipment_id, a new one will be returned to you.
+    #
+    #   Available required options are:
+    #     Integer
+    #       shipment_id  : This must be an ID that you have received in a response from the Query API. 
+    #                      If you have already used the same shipment ID in a previous call to the Order API, 
+    #                      Fraktjakt will create a new copy of the existing shipment record with a new shipment ID (but with the same shipment details).
+    #       shipping_product_id : The shipping product's ID in Fraktjakt. This must be an ID that you have received in a response from the Query API.
+    #
+    #   In addition you also has to have at least one commcodity added with add_commodity
+    #   and a recipient-hash as in the example
+    #
+    # 
+    #   Available optional options are:
+    #     String
+    #       reference    : Free text that refers to the order in Fraktjakt. 
+    #                      This element may contain your own system's order ID, an identifying text, or some other. 
+    #                      This text will appear on your shipping labels.
+    #       sender_email : Only applies to pre-paid shipping : The e-mail address of the person who will be 
+    #                      handling the shipment, if not the consignor. 
+    #   In additions you can also provide booking information as in the example above. this is not hte recomended way to make a booking and are totaly optional.
+    #        
     def order(options = {})
       check_required_options(:order, options)
       if options[:recipient][:name_to].blank? && options[:recipient][:company_to].blank?
@@ -180,9 +231,10 @@ module Fraktjakt #:nodoc:
       xml += xml_order_options(options)
       xml += xml_recipient(options[:recipient])
       xml += xml_commodities
+      xml += xml_booking(options[:booking]) unless options[:booking].blank?
       xml += '</order>'
       RAILS_DEFAULT_LOGGER.debug "--> xml = #{xml.inspect}" if @debug
-      xml = CGI.escape(xml||"") #.gsub(/\+/,' ')
+      xml = CGI.escape(xml||"") 
       if @debug
         url = URI.parse('http://192.168.66.18:3011/orders/order_xml?xml='+xml)
       else
@@ -232,7 +284,7 @@ module Fraktjakt #:nodoc:
     #   :name needs to be in a language understood in the receiver's country.
     #
     # Other options:
-    #   quantity_units - In what unit are the commodity measused.
+    #   quantity_units : In what unit are the commodity measused.
     #                  Allowed values are:
     #                        EA = styck
     #                        DZ = dussin
@@ -240,15 +292,15 @@ module Fraktjakt #:nodoc:
     #                        ML = mililiter
     #                        KG = kilogram
     #                        Default är EA (each) om inget värde anges.
-    #   taric - International standard-Code for each type of commodity. https://tid.tullverket.se/taric/TAG_Search.aspx
-    #         Always optional, but when you include this element in international shipping orders, the shipments will 
-    #         normally get through customs much faster.
+    #   taric : International standard-Code for each type of commodity. https://tid.tullverket.se/taric/TAG_Search.aspx
+    #           Always optional, but when you include this element in international shipping orders, the shipments will 
+    #           normally get through customs much faster.
     #
     #   The following options are needed for international shipments: 
-    #   unit_price - How much is each unit of the unit_type worth. 
-    #   description - Should be in a language understood in the receiver's country.
-    #   country_of_manufacture - Where the commodity are manufacture.
-    #   weight - The total weight of all commodities must be the sama as the total weight for alla parcels.
+    #   unit_price    : How much is each unit of the unit_type worth. 
+    #   description   : Should be in a language understood in the receiver's country.
+    #   country_of_manufacture : Where the commodity are manufacture.
+    #   weight        : The total weight of all commodities must be the sama as the total weight for alla parcels.
     # 
     def add_commodity(commodity)
       check_required_options(:commodity, commodity)
@@ -301,7 +353,6 @@ module Fraktjakt #:nodoc:
     end
     
     def xml_order_options(options) #:nodoc:
-      res  = build_option_tag(:boolean, ['express', 'pickup', 'dropoff', 'green', 'quality', 'time_guarantie', 'cold', 'frozen', 'no_agents', 'no_price'], options)
       res += build_option_tag(:integer, ['shipment_id', 'shipping_product_id'], options)
       res += build_option_tag(:float, ['value'], options)
       res += build_option_tag(:string, ['sender_email'], options)
@@ -372,20 +423,24 @@ module Fraktjakt #:nodoc:
     end
     
     def xml_recipient(recipient) #:nodoc:
-      res = '<recipient>'
+      res  = '<recipient>'
       res += build_option_tag(:string, ['company_to', 'name_to', 'telephone_to', 'mobile_to', 'email_to'], recipient)
       return res + '</recipient>'
     end
     
+    def xml_booking(booking)
+      res  = '<booking>'
+      res += build_option_tag(:string, ['driving_instruction', 'user_notes', 'pickup_date', 'ready_time', 'close_time'], booking)
+      return res + '</booking>'
+    end
+    
     def get_element(element, error_text, mandatory=true) #:nodoc:
-      # Returns element, error_mess
       the_element = element
       raise FraktjaktError.new(error_text) if the_element.nil? && mandatory
       return the_element
     end
     
     def get_text(element, error_text, mandatory=true) #:nodoc:
-    # Returns text, element, error_mess
       notice = ""
       the_element = get_element(element,error_text,mandatory) 
       if the_element.nil?
