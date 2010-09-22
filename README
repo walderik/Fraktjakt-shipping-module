@@ -15,17 +15,22 @@ Why integrate with Fraktjakt?
 	Because it's completely free to use, and it will save you time and money!
 	
 	If you have a web shop, Fraktjakt gives you simpler shipping support and discounted shipping prices. 
-	Your customers will be able to choose the quickest, cheapest or most convenient shipping alternative when they purchase products on your site.
+	Your customers will be able to choose the quickest, cheapest or most convenient shipping alternative 
+	when they purchase products on Fraktjakt's site.
 	 
-	Fraktjakt eliminates the need to procure shipping contracts, since we have already negotiated good shipping contracts for you. 
+	Fraktjakt eliminates the need to procure shipping contracts, since Fraktjakt 
+	have already negotiated good shipping contracts for you. 
 	Fraktjakt also makes your shipping management very simple, so you can focus more on selling your products.
 	
-	Fraktjakt help you save on both domestic and international shipping. This is possible because we have volume based contracts with the shippers.
+	Fraktjakt help you save on both domestic and international shipping. 
+	This is possible because Frkajakt have volume based contracts with the shippers.
 	 
 	You get access to these discounted prices when you use Fraktjakt with your web shop.
 	 
-	When you integrate Fraktjakt's order handling system with your application's sales functions, you are essentially plugging in your system to 
-	a variety of shipping providers. Fraktjakt manages all of your communication with the shippers. It also generates the necessary shipping documents, etc.
+	When you integrate Fraktjakt's order handling system with your application's sales functions, 
+	you are essentially plugging in your system to a variety of shipping providers. 
+	Fraktjakt manages all of your communication with the shippers. 
+	It also generates the necessary shipping documents, etc.
 
 
 Configuration Possibilities with Fraktjakt
@@ -64,7 +69,7 @@ Useful functions
 Example
 =======
 
-Controller:
+Controller
 ===========
 
 class SearchController < ApplicationController
@@ -119,7 +124,7 @@ end
 
 
 
-Views:
+Views
 ======
 
 index.html.erb
@@ -136,7 +141,7 @@ index.html.erb
     <br />
   <%end%>
 <%else%>
- <h1> No search result due to:<br />
+  <h1> No search result due to:<br />
   <%= @error_message %></h1>
 <%end%>
 
@@ -162,5 +167,7 @@ order.html.erb
 For more information, please download the latest version Fraktjakt's API-documentation at:
 http://www.fraktjakt.se/services/download
 
+Don't forget to generate rdoc
+rake rdoc
 
 Copyright (c) 2010 [Mats Bergström], released under the MIT license
