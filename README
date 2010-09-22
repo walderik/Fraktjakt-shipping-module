@@ -1,0 +1,166 @@
+Fraktjakt
+=========
+
+	This is a Plugin to make it easier to search for the best shipping-service in Fraktjakt 
+	and to place an order there for shipment-handling, creation of shipping-documents and 
+	sending edifact to the shipping-company.
+	
+	Fraktjakt is a service for comparing and purchasing shipping services over the Internet. 
+	It is available both as a web site (http://www.fraktjakt.se) and as an API that can be 
+	called by other services on the Internet. 
+
+
+Why integrate with Fraktjakt?
+=============================
+	Because it's completely free to use, and it will save you time and money!
+	
+	If you have a web shop, Fraktjakt gives you simpler shipping support and discounted shipping prices. 
+	Your customers will be able to choose the quickest, cheapest or most convenient shipping alternative when they purchase products on your site.
+	 
+	Fraktjakt eliminates the need to procure shipping contracts, since we have already negotiated good shipping contracts for you. 
+	Fraktjakt also makes your shipping management very simple, so you can focus more on selling your products.
+	
+	Fraktjakt help you save on both domestic and international shipping. This is possible because we have volume based contracts with the shippers.
+	 
+	You get access to these discounted prices when you use Fraktjakt with your web shop.
+	 
+	When you integrate Fraktjakt's order handling system with your application's sales functions, you are essentially plugging in your system to 
+	a variety of shipping providers. Fraktjakt manages all of your communication with the shippers. It also generates the necessary shipping documents, etc.
+
+
+Configuration Possibilities with Fraktjakt
+==========================================
+	Selection of which shipping services your customers may choose when they make purchases in your web shop;
+	Selection of whether to sort the shipping alternatives by time or price when they are presented to your customers; 
+	Selection of whether shipping time will be displayed as Number of days or Arrival time; 
+	Selection of Free shipping when a customer's purchase exceeds a specific amount;
+	Setting a price for picking up a product in person instead of having it shipped; 
+	Definition of optional standard box dimensions, if you want Fraktjakt to use these;
+	Selection of which days shippers can pick up products for delivery;
+	Definition of pick-up times, if applicable.
+
+
+Useful functions 
+================
+	Fraktjakt can handle all products in the customer's shopping cart, regardless of whether they are sent as separate 
+	parcels or if multiple products are packaged together in a standard box. 
+	Fraktjakt allows you to define the dimensions of individual products. This provides more exact price calculations.
+	Fraktjakt can determine which products in your customer's shopping cart will fit into your standard boxes and base 
+	the shipping prices on your standard box size. This is normally cheaper than basing the shipping prices on the 
+	dimensions of your individual products.  
+	Fraktjakt estimates delivery times based on your settings, i.e. which days shippers can come and pick up products for delivery, 
+	along with any specific pick-up times that you may have defined. 
+	Your customers only see the shipping alternatives that you want them to be able to choose. 
+	When your customers choose delivery that is not door-to-door, they are shown the nearest pick-up location and 
+	how far it is from their address to that location.
+	Fraktjakt provides links to maps that help your customers locate pick-up locations.
+	Fraktjakt prepares booking and pick-up of one or more shipments. 
+	Frakt creates shipping documents for both domestic and international shipments, to be printed out on your own printer.
+
+
+
+
+
+Example
+=======
+
+Controller:
+===========
+
+class SearchController < ApplicationController
+  
+  def index
+    address = {   :street1 => 'c/o Johansson',
+                  :street2 => 'Östra storgatan 49',
+                  :postal_code => '55321',
+                  :city_name => 'Jönköping', 
+                  :country_code => 'SE',
+                  :residential => true
+              }
+    
+    fraktjakt = Fraktjakt::Fraktjakt.new(
+      :consignor_id => 2,
+      :consignor_key => '04c959d8259e811342e01d5025bb35e460eb105e',
+      :debug => true )
+    
+    fraktjakt.add_parcel( :weight => 1, :length => 15, :width => 7, :height => 3 )
+    
+    begin
+      @shipment_id, @warning, @res = fraktjakt.shipment(:express => false, :value => 4, :address => address)
+    rescue Fraktjakt::FraktjaktError
+      @error_message = $!
+    end
+    
+  end
+
+  
+  
+  
+  def order 
+    shipping_product_id = params[:id]
+    recipient = { :name_to=>'Lina Sandell', :mobile_to=>'0733-710252'}
+    
+    fraktjakt = Fraktjakt::Fraktjakt.new(
+      :consignor_id => 2,
+      :consignor_key => '04c959d8259e811342e01d5025bb35e460eb105e',
+      :debug => true )
+    
+    fraktjakt.add_commodity(:name => 'Yllesocka', :quantity=>2)
+    
+    begin
+      @shipment_id, @warning, @order_id = fraktjakt.order(:value => 4, :shipping_product_id=> shipping_product_id, :recipient => recipient, :shipment_id => @shipment_id)
+    rescue Fraktjakt::FraktjaktError
+      @error_message = $!
+    end
+  end 
+  
+end
+
+
+
+
+Views:
+======
+
+index.html.erb
+
+
+<% if @error_message.blank? %>
+  <h1>Results</h1>
+  <b>Shipment_id: <%= @shipment_id %></b><br />
+  <b>Warnings: <%= @warnings %></b><br />
+  <br />
+  <% @res.each do |res| %>
+    <%= res.id %> - <%= res.desc %> : <%= res.price %>
+    <%= link_to 'Select', {:action => 'order', :id => res.id, :shipment_id => @shipment_id} %>
+    <br />
+  <%end%>
+<%else%>
+ <h1> No search result due to:<br />
+  <%= @error_message %></h1>
+<%end%>
+
+
+
+order.html.erb
+
+
+<% if @error_message.blank? %>
+  <h1>Results</h1>
+  <b>Shipment_id: <%= @shipment_id %></b><br />
+  <b>Warnings: <%= @warnings %></b><br />
+  <b>Order_id: <%= @order_id %></b><br />
+  <br />
+<%else%>
+ <h1> No search result due to:<br />
+  <%= @error_message %></h1>
+<%end%>
+
+
+
+
+For more information, please download the latest version Fraktjakt's API-documentation at:
+http://www.fraktjakt.se/services/download
+
+
+Copyright (c) 2010 [Mats Bergström], released under the MIT license
