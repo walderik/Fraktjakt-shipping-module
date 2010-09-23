@@ -1,7 +1,6 @@
-Fraktjakt
-=========
+= Fraktjakt
 
-	This is a Plugin to make it easier to search for the best shipping-service in Fraktjakt 
+	This is a Plugin to make it easier to search for the best shipping-service in http://www.fraktjakt.se 
 	and to place an order there for shipment-handling, creation of shipping-documents and 
 	sending edifact to the shipping-company.
 	
@@ -10,8 +9,8 @@ Fraktjakt
 	called by other services on the Internet. 
 
 
-Why integrate with Fraktjakt?
-=============================
+=== Why integrate with Fraktjakt?
+
 	Because it's completely free to use, and it will save you time and money!
 	
 	If you have a web shop, Fraktjakt gives you simpler shipping support and discounted shipping prices. 
@@ -33,8 +32,8 @@ Why integrate with Fraktjakt?
 	It also generates the necessary shipping documents, etc.
 
 
-Configuration Possibilities with Fraktjakt
-==========================================
+=== Configuration Possibilities with Fraktjakt
+
 	Selection of which shipping services your customers may choose when they make purchases in your web shop;
 	Selection of whether to sort the shipping alternatives by time or price when they are presented to your customers; 
 	Selection of whether shipping time will be displayed as Number of days or Arrival time; 
@@ -45,8 +44,8 @@ Configuration Possibilities with Fraktjakt
 	Definition of pick-up times, if applicable.
 
 
-Useful functions 
-================
+=== Useful functions 
+
 	Fraktjakt can handle all products in the customer's shopping cart, regardless of whether they are sent as separate 
 	parcels or if multiple products are packaged together in a standard box. 
 	Fraktjakt allows you to define the dimensions of individual products. This provides more exact price calculations.
@@ -64,15 +63,25 @@ Useful functions
 
 
 
+== Installation
+
+This plugin doesn't depend on anything except the Ruby standard library
 
 
-Example
-=======
+To install the plugin itself, simply run:
 
-Controller
-===========
+  ./script/plugin install git://github.com/walderik/Fraktjakt-shipping-module.git
 
-class SearchController < ApplicationController
+  Or better just drop the whole directory into your application's "vendor/plugins" directory. 
+  Starting with version 1.0rc of rails, it will be automatically picked for you by rails plugin mechanism.
+
+
+
+== Example
+
+=== Controller
+
+==== class SearchController < ApplicationController
   
   def index
     address = {   :street1 => 'c/o Johansson',
@@ -124,10 +133,9 @@ end
 
 
 
-Views
-======
+=== Views
 
-index.html.erb
+==== index.html.erb
 
 
 <% if @error_message.blank? %>
@@ -147,8 +155,7 @@ index.html.erb
 
 
 
-order.html.erb
-
+==== order.html.erb
 
 <% if @error_message.blank? %>
   <h1>Results</h1>
@@ -163,11 +170,18 @@ order.html.erb
 
 
 
+== More information
 
 For more information, please download the latest version Fraktjakt's API-documentation at:
 http://www.fraktjakt.se/services/download
 
 Don't forget to generate rdoc
 rake doc:plugins
+
+== BUGS & FEEDBACK
+
+Bug reports (as well as patches) and feedback are very welcome. Please send it to
+walderik@yahoo.se
+
 
 Copyright (c) 2010 [Mats Bergström], released under the MIT license
