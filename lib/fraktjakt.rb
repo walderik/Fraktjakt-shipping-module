@@ -218,7 +218,7 @@ module Fraktjakt #:nodoc:
     #                      This element may contain your own system's order ID, an identifying text, or some other. 
     #                      This text will appear on your shipping labels.
     #       sender_email : Only applies to pre-paid shipping : The e-mail address of the person who will be 
-    #                      handling the shipment, if not the consignor. 
+    #                      handling the shipment, if not the consignor. Creates an extra link in the reply and an email is sent to that address.
     #   In additions you can also provide booking information as in the example above. this is not hte recomended way to make a booking and are totaly optional.
     #        
     def order(options = {})
@@ -259,12 +259,13 @@ module Fraktjakt #:nodoc:
         elsif code.to_i == 1
           warning_message = get_text(result.elements['warning_message'], "Priserna kan hämtas.", false)
         end
-        shipment_id = get_element(result.elements['shipment_id'], "Fraktjakt kan för närvarande inte hämta aktuell shipment.")
-        order_id = get_element(result.elements['order_id'], "Ingen order skapad i Fraktjakt.")
+        shipment_id = get_text(result.elements['shipment_id'], "Fraktjakt kan för närvarande inte hämta aktuell shipment.")
+        order_id = get_text(result.elements['order_id'], "Ingen order skapad i Fraktjakt.")
+        sender_email_link = get_text(result.elements['sender_email_link'], "Ingen länk skickad med resultatet.", false)
       else
         raise FraktjaktError.new("Vi har för närvarande ingen kontakt med Fraktjakt.")
       end
-      return shipment_id, warning_message, order_id
+      return warning_message, shipment_id, order_id, sender_email_link
     end
     
     
