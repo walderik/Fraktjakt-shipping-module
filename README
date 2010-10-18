@@ -122,7 +122,7 @@ To install the plugin itself, simply run:
     fraktjakt.add_commodity(:name => 'Yllesocka', :quantity=>2)
     
     begin
-      @shipment_id, @warning, @order_id = fraktjakt.order(:value => 4, :shipping_product_id=> shipping_product_id, :recipient => recipient, :shipment_id => @shipment_id)
+      @warning, @shipment_id, @order_id, @order_link = fraktjakt.order(:value => 4, :shipping_product_id => shipping_product_id, :recipient => recipient, :shipment_id => @shipment_id)
     rescue Fraktjakt::FraktjaktError
       @error_message = $!
     end
