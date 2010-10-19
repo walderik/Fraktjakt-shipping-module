@@ -47,7 +47,7 @@ module Fraktjakt #:nodoc:
     
     # The Method to find the best shipment from Fraktjakt
     #
-    #     To do a freight query follow these steps:
+    #    To do a freight query follow these steps:
     #
     #    1. Create a Fraktjakt-object
     #          fraktjakt = Fraktjakt::Fraktjakt.new( :consignor_id => 2, :consignor_key => '04c959d8259e811342e01d5025bb35e460eb105e', :debug => true )
@@ -68,7 +68,7 @@ module Fraktjakt #:nodoc:
     #    
     #    3. Do a search-call. Available options are listed below.
     #          begin
-    #            @shipment_id, @warning, @res = fraktjakt.shipment(:express => false, :value => 4, :address => address)
+    #            @shipment_id, @warning, @res = fraktjakt.shipment(:express => false, :value => 4, :address => address) # value and address is required
     #          rescue Fraktjakt::FraktjaktError
     #            @error_message = $!
     #          end
@@ -94,10 +94,18 @@ module Fraktjakt #:nodoc:
     #   From the result you link to the order-action that will create an order in Fraktjakt.
     #
     # 
+    #   Required options are:
+    #     Float
+    #       value     : The value of the shipment
+    #     Other
+    #       address   : A hash that defines where to send the shipment. See above for the corrent format. 
+    # 
+    #     You also have to make a call to the add_parcel-method before calling the search-method.
+    #
     #   Available optional options are:
     #     Boolean
-    #       Express   : If true, only express-products will be returned. If false, all products will be returned.
-    #       Pickup    : If true, only products including pickup will be returned. If false, all products will be returned.
+    #       express   : If true, only express-products will be returned. If false, all products will be returned.
+    #       pickup    : If true, only products including pickup will be returned. If false, all products will be returned.
     #       dropoff   : If true, only products including dropoff will be returned. If false, all products will be returned.
     #       green     : If true, only green.marked products are returned. If false, all products will be returned.
     #       quality   : If true, only quality-marked products are returned. If false, all products will be returned.
@@ -116,7 +124,7 @@ module Fraktjakt #:nodoc:
     #       value     : The cummulative value of all items in the shipment.
     #
     #     Other
-    #       address_from : A hash that works the same way as address_to, but sets the sender's address to a different one then specified in 
+    #       address_from : A hash that works the same way as address-hash, but sets the sender's address to a different one then specified in 
     #                      the users settings in Fraktjakt. Not recomended if not needed.
     
     def shipment(options = {})
@@ -192,7 +200,7 @@ module Fraktjakt #:nodoc:
     #    4. Add the commodities (varuslagen)
     #         fraktjakt.add_commodity(:name => 'Yllesocka', :quantity=>2)  # See add_commodity for alla available and needed options.
     #
-    #    5. You may now create a bokking_hash. This is optional and if booking is needed, but not prrovided, the settings for the webshop will be used.
+    #    5. You _may now create a booking_hash. This is optional and if booking is needed, but not prrovided, the settings for the webshop will be used.
     #       this is the recomended way to handle bookings.
     #         booking = {  :driving_instruction => 'Hit och dit', # Optional
     #                      :user_notes => 'You must call me at 0733-710252',  # Optional 
@@ -210,10 +218,10 @@ module Fraktjakt #:nodoc:
     #
     #        The result is easy to handle and you just have to present the new order_id
     #    
-    #    Note that you can reuse a shipment_id several times from a freight-query. 
-    #    If you reuse an old shipment_id, a new one will be returned to you.
+    #        Note that you can reuse a shipment_id several times from a freight-query. 
+    #        If you reuse an old shipment_id, a new one will be returned to you.
     #
-    #   Available required options are:
+    #   Required options are:
     #     Integer
     #       shipment_id  : This must be an ID that you have received in a response from the Query API. 
     #                      If you have already used the same shipment ID in a previous call to the Order API, 
@@ -221,7 +229,7 @@ module Fraktjakt #:nodoc:
     #       shipping_product_id : The shipping product's ID in Fraktjakt. This must be an ID that you have received in a response from the Query API.
     #
     #   In addition you also has to have at least one commcodity added with add_commodity
-    #   and a recipient-hash as in the example
+    #       and a recipient-hash as in the example
     #
     # 
     #   Available optional options are:
@@ -231,7 +239,9 @@ module Fraktjakt #:nodoc:
     #                      This text will appear on your shipping labels.
     #       sender_email : Only applies to pre-paid shipping : The e-mail address of the person who will be 
     #                      handling the shipment, if not the consignor. Creates an extra link in the reply and an email is sent to that address.
-    #   In additions you can also provide booking information as in the example above. this is not hte recomended way to make a booking and are totaly optional.
+    #
+    #   In additions you can also provide booking information as in the example above. 
+    #       This is not the recomended way to make a booking and are totaly optional.
     #        
     def order(options = {})
       check_required_options(:order, options)
@@ -282,6 +292,7 @@ module Fraktjakt #:nodoc:
     
     
     # Method to add a parcel to a shipment. You have to do that before a freight-search.
+    #
     # To add parcels 
     #   fraktjakt.add_parcel( :weight => 1, :length => 15, :width => 7, :height => 3 )   
     def add_parcel(parcel)
