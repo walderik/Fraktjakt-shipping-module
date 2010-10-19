@@ -20,13 +20,19 @@ module Fraktjakt #:nodoc:
                   :debug
     
     
+    # Consignor is the buyer of the shipment. Usually also the same as the sender. 
+    #
     # To create a Fraktjakt object, send in the following options:
     #   :consignor_id - are found in the webshops profile page in Fraktjakt - Prod = http://api1.fraktjakt.se/webshops/install
     #   :consignor_key - are found on the same page
     #   :currency - not in use by Fraktjakt right now
     #   :language - not in use by Fraktjakt right now
-    #   :debug - If you want to call the test-server (api2.fraktjakt.se) or the production-server (api1.fraktjakt.se). Also the amount of logging done.
+    #   :debug - If you want to call the test-server (api2.fraktjakt.se) or the production-server (api1.fraktjakt.se). 
+    #            Also the amount of logging done.
     #            Please note that you will need different :consignor_id and :consignor_key in test and production! 
+    #            When you call the test-server you will not be able to create any real orders and you will not be able to
+    #            pay for anything.
+    
     def initialize(options = {})
       check_required_options(:base, options)
       @consignor_id = options[:consignor_id]

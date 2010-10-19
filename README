@@ -45,6 +45,9 @@ For more information about different options,
 please download the latest version Fraktjakt's API-documentation at:
 http://www.fraktjakt.se/services/download
 
+While you develop and tests your installation you should set :debug to true. This will send your calls to the test-server
+and prevent you from making any real orders. 
+
 
 === Configuration Possibilities with Fraktjakt
 
@@ -76,7 +79,7 @@ http://www.fraktjakt.se/services/download
         pick-up times that you may have defined. 
 	Your customers only see the shipping alternatives that you want them to be able to choose. 
 	When your customers choose delivery that is not door-to-door, they are shown the nearest pick-up location and 
-	  how far it is from their address to that location.
+	      how far it is from their address to that location.
 	Fraktjakt provides links to maps that help your customers locate pick-up locations.
 	Fraktjakt prepares booking and pick-up of one or more shipments. 
 	Frakt creates shipping documents for both domestic and international shipments, 
