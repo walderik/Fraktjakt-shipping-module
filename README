@@ -31,11 +31,27 @@
 	Fraktjakt manages all of your communication with the shippers. 
 	It also generates the necessary shipping documents, etc.
 
+== Installation
+
+This plugin doesn't depend on anything except the Ruby standard library
+
+To install the plugin itself, simply just drop the whole directory into your application's "vendor/plugins" directory. 
+  Starting with version 1.0rc of rails, it will be automatically picked for you by rails plugin mechanism.
+
+Don't forget to generate rdoc
+rake doc:plugins
+
+For more information about different options, 
+please download the latest version Fraktjakt's API-documentation at:
+http://www.fraktjakt.se/services/download
+
 
 === Configuration Possibilities with Fraktjakt
 
-	Selection of which shipping services your customers may choose when they make purchases in your web shop;
-	Selection of whether to sort the shipping alternatives by time or price when they are presented to your customers; 
+	Selection of which shipping services your customers may choose when they 
+        make purchases in your web shop;
+	Selection of whether to sort the shipping alternatives by time or price when 
+        they are presented to your customers; 
 	Selection of whether shipping time will be displayed as Number of days or Arrival time; 
 	Selection of Free shipping when a customer's purchase exceeds a specific amount;
 	Setting a price for picking up a product in person instead of having it shipped; 
@@ -46,34 +62,25 @@
 
 === Useful functions 
 
-	Fraktjakt can handle all products in the customer's shopping cart, regardless of whether they are sent as separate 
+	Fraktjakt can handle all products in the customer's shopping cart, 
+        regardless of whether they are sent as separate 
 	parcels or if multiple products are packaged together in a standard box. 
-	Fraktjakt allows you to define the dimensions of individual products. This provides more exact price calculations.
-	Fraktjakt can determine which products in your customer's shopping cart will fit into your standard boxes and base 
-	the shipping prices on your standard box size. This is normally cheaper than basing the shipping prices on the 
-	dimensions of your individual products.  
-	Fraktjakt estimates delivery times based on your settings, i.e. which days shippers can come and pick up products for delivery, 
-	along with any specific pick-up times that you may have defined. 
+	Fraktjakt allows you to define the dimensions of individual products. This 
+        provides more exact price calculations.
+	Fraktjakt can determine which products in your customer's shopping cart will fit into your 
+        standard boxes and base the shipping prices on your standard box size. 
+        This is normally cheaper than basing the shipping prices on the dimensions of 
+        your individual products.  
+	Fraktjakt estimates delivery times based on your settings,
+        i.e. which days shippers can come and pick up products for delivery, along with any specific 
+        pick-up times that you may have defined. 
 	Your customers only see the shipping alternatives that you want them to be able to choose. 
 	When your customers choose delivery that is not door-to-door, they are shown the nearest pick-up location and 
-	how far it is from their address to that location.
+	  how far it is from their address to that location.
 	Fraktjakt provides links to maps that help your customers locate pick-up locations.
 	Fraktjakt prepares booking and pick-up of one or more shipments. 
-	Frakt creates shipping documents for both domestic and international shipments, to be printed out on your own printer.
-
-
-
-== Installation
-
-This plugin doesn't depend on anything except the Ruby standard library
-
-
-To install the plugin itself, simply run:
-
-  ./script/plugin install git://github.com/walderik/Fraktjakt-shipping-module.git
-
-  Or better just drop the whole directory into your application's "vendor/plugins" directory. 
-  Starting with version 1.0rc of rails, it will be automatically picked for you by rails plugin mechanism.
+	Frakt creates shipping documents for both domestic and international shipments, 
+        to be printed out on your own printer.
 
 
 
@@ -83,6 +90,7 @@ To install the plugin itself, simply run:
 
 ==== class SearchController < ApplicationController
   
+  # This action will give you a list of different shipment-services
   def index
     address = {   :street1 => 'c/o Johansson',
                   :street2 => 'Östra storgatan 49',
@@ -95,7 +103,7 @@ To install the plugin itself, simply run:
     fraktjakt = Fraktjakt::Fraktjakt.new(
       :consignor_id => 2,
       :consignor_key => '04c959d8259e811342e01d5025bb35e460eb105e',
-      :debug => true )
+      :debug => true )  # Sets to false when you move to production
     
     fraktjakt.add_parcel( :weight => 1, :length => 15, :width => 7, :height => 3 )
     
@@ -105,6 +113,14 @@ To install the plugin itself, simply run:
       @error_message = $!
     end
     
+    # Consignor is the buyer of the shipment. Usually also the
+    # same as the sender. 
+    #
+    # found in the webshops profile page in Fraktjakt - Prod 
+    # http://api1.fraktjakt.se/webshops/install
+    # @shipment_id will later be used to place an order in Fraktjakt
+    # @warning is a strng that might have some warnings
+    # @res is an Array of the SearchResult-class (see rdoc)
   end
 
   
@@ -117,7 +133,7 @@ To install the plugin itself, simply run:
     fraktjakt = Fraktjakt::Fraktjakt.new(
       :consignor_id => 2,
       :consignor_key => '04c959d8259e811342e01d5025bb35e460eb105e',
-      :debug => true )
+      :debug => true ) # Sets to false when you move to production
     
     fraktjakt.add_commodity(:name => 'Yllesocka', :quantity=>2)
     
@@ -126,6 +142,8 @@ To install the plugin itself, simply run:
     rescue Fraktjakt::FraktjaktError
       @error_message = $!
     end
+    # @order_link is an optional link that will be returned when 
+    # the option :sender_email is provided.
   end 
   
 end

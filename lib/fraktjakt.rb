@@ -48,6 +48,7 @@ module Fraktjakt #:nodoc:
     #
     #    2. Add parcels 
     #          fraktjakt.add_parcel( :weight => 1, :length => 15, :width => 7, :height => 3 )
+    #             Only the weight is mandatory. The rest is highly recomended.
     #
     #    3. Create an address-hash for the receiver
     #       address = {   :street1 => 'c/o Johansson',       # Mandatory
@@ -107,6 +108,11 @@ module Fraktjakt #:nodoc:
     #
     #     Float
     #       value     : The cummulative value of all items in the shipment.
+    #
+    #     Other
+    #       address_from : A hash that works the same way as address_to, but sets the sender's address to a different one then specified in 
+    #                      the users settings in Fraktjakt. Not recomended if not needed.
+    
     def shipment(options = {})
       options[:value] = '1.0' if options[:value].blank? || options[:value].to_f < 1
       RAILS_DEFAULT_LOGGER.debug "--> parcels = #{@parcels}" if @debug
@@ -466,22 +472,22 @@ module Fraktjakt #:nodoc:
   # The result from a freight-query in Fraktjakt
   #   The result from Fraktjakt are saved as an array of this class
   #   Each object is a description of a shipping_product
-  #   id - the id of the shipping_product
+  #   id - the id of the shipping_product as integer
   #   desc - The name and description of the product
   #   time - transportation-time
-  #   price - price for the transportation. Probably the most important value.
-  #   tax_class - Vat if any (0% or 25%).
+  #   price - price for the transportation. Probably the most important value. Float.
+  #   tax_class - Vat if any (0% or 25%). Float.
   #   agent_info - Information about the closest agent, if applicable.
   #   agent_link - A link to find the closest agent.
   class SearchResult
     attr_reader :id, :desc, :time, :price, :tax_class, :agent_info, :agent_link, :agent_in_info, :agent_in_link
     
     def initialize(id, desc, time, price, tax_class, agent_info, agent_link, agent_in_info, agent_in_link) #:nodoc:
-      @id = id
+      @id = id.to_i
       @desc = desc
       @time = time
-      @price = price
-      @tax_class = tax_class
+      @price = price.to_f
+      @tax_class = tax_class.to_i
       @agent_info = agent_info
       @agent_link = agent_link
       @agent_in_info = agent_in_info
