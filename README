@@ -86,6 +86,28 @@ and prevent you from making any real orders.
         to be printed out on your own printer.
 
 
+== General Instruction
+
+  To use Fraktjakt as your integration with a shipping company you need to do the folowing steps:
+  
+  1. Register a webshop in Fraktjakt. They call all users that has options to integrate with 
+     them Webshops wether they actually are webshop or not.
+     Go the the 'webbutik'-settings under your account and write down your consignor ID and KEY.
+     A consignor is the buyer of the freight and ID and KEY is what identifies you in the system.
+     Think of it as you user-name and password.
+  2. Install this plugin in your application.
+  3. Send in a freight-query with the shipment-method. 
+     See the rdoc or the source-code for that method for available options.
+  4. Use one of the results from that query to place an order in Fraktjakt. 
+     To do that, call the order-method with the received shipment_id 
+     See the rdoc or the source-code for all available options to that call.
+	5. When you are ready to send your shipments
+       Log in to Fraktjakt
+       Go to your orders
+       Click on the button to pay for all your orders at the same time.
+       Pay for them and at the same tima make sure your booking-times are what you want.
+       Print out your shipping-instructions and go to the agent or wait for the shipper.
+        
 
 == Example
 

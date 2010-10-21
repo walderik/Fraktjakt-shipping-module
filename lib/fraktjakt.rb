@@ -45,7 +45,7 @@ module Fraktjakt #:nodoc:
     
     
     
-    # The Method to find the best shipment from Fraktjakt
+    # The Method to find the best shipment from Fraktjakt.
     #
     #    To do a freight query follow these steps:
     #
@@ -96,37 +96,39 @@ module Fraktjakt #:nodoc:
     # 
     #   Required options are:
     #     Float
-    #       value     : The value of the shipment
+    #       value       : The value of the shipment
     #     Other
-    #       address   : A hash that defines where to send the shipment. See above for the corrent format. 
+    #       address     : A hash that defines where to send the shipment. See above for the corrent format. 
     # 
     #     You also have to make a call to the add_parcel-method before calling the search-method.
     #
     #   Available optional options are:
     #     Boolean
-    #       express   : If true, only express-products will be returned. If false, all products will be returned.
-    #       pickup    : If true, only products including pickup will be returned. If false, all products will be returned.
-    #       dropoff   : If true, only products including dropoff will be returned. If false, all products will be returned.
-    #       green     : If true, only green.marked products are returned. If false, all products will be returned.
-    #       quality   : If true, only quality-marked products are returned. If false, all products will be returned.
+    #       express     : If true, only express-products will be returned. If false, all products will be returned.
+    #       pickup      : If true, only products including pickup will be returned. If false, all products will be returned.
+    #       dropoff     : If true, only products including dropoff will be returned. If false, all products will be returned.
+    #       green       : If true, only green.marked products are returned. If false, all products will be returned.
+    #       quality     : If true, only quality-marked products are returned. If false, all products will be returned.
     #       time_guarantie : If true, only products including time_guarantie will be returned. If false, all products will be returned.
-    #       cold      : If true, only products spially handling cold products will be returned. If false, no such products will be returned.
-    #       frozen    : If true, only products spially handling frozen products will be returned. If false, no such products will be returned.
-    #       no_agents : If true, no information about closest agents and no links to them will be returned. This is a faster query. If false, all agent info will be returned.
-    #       no_price  : If true, no price-information in the result will be returned. This is a faster query. If false, all price-info will be returned.
-    #       agents_in : if true, will send extra information about the closest agent for the sender. Makes the query much slower.
+    #       cold        : If true, only products spially handling cold products will be returned. If false, no such products will be returned.
+    #       frozen      : If true, only products spially handling frozen products will be returned. If false, no such products will be returned.
+    #       no_agents   : If true, no information about closest agents and no links to them will be returned. This is a faster query. If false, all agent info will be returned.
+    #       no_price    : If true, no price-information in the result will be returned. This is a faster query. If false, all price-info will be returned.
+    #       agents_in   : if true, will send extra information about the closest agent for the sender. Makes the query much slower.
     #     
     #     Integer
     #       shipping_product_id : If provided, the shipment-method will only search for this product. A whole list of avalible ID can be found at:
     #                             http://www.fraktjakt.se/shipping_products/xml_list
     #
     #     Float
-    #       value     : The cummulative value of all items in the shipment.
+    #       value         : The cummulative value of all items in the shipment.
+    #
+    #     String
+    #       referrer_code : By agreement with Fraktjakt
     #
     #     Other
-    #       address_from : A hash that works the same way as address-hash, but sets the sender's address to a different one then specified in 
+    #       address_from  : A hash that works the same way as address-hash, but sets the sender's address to a different one then specified in 
     #                      the users settings in Fraktjakt. Not recomended if not needed.
-    
     def shipment(options = {})
       options[:value] = '1.0' if options[:value].blank? || options[:value].to_f < 1
       RAILS_DEFAULT_LOGGER.debug "--> parcels = #{@parcels}" if @debug
@@ -376,6 +378,7 @@ module Fraktjakt #:nodoc:
       res  = build_option_tag(:boolean, ['express', 'pickup', 'dropoff', 'green', 'quality', 'time_guarantie', 'cold', 'frozen', 'no_agents', 'no_price', 'agents_in'], options)
       res += build_option_tag(:integer, ['shipping_product_id'], options)
       res += build_option_tag(:float, ['value'], options)
+      res += build_option_tag(:string, ['referrer_code'], options)
       return res
     end
     
