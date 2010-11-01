@@ -33,20 +33,20 @@
 
 == Installation
 
-This plugin doesn't depend on anything except the Ruby standard library
-
-To install the plugin itself, simply just drop the whole directory into your application's "vendor/plugins" directory. 
-  Starting with version 1.0rc of rails, it will be automatically picked for you by rails plugin mechanism.
-
-Don't forget to generate rdoc
-rake doc:plugins
-
-For more information about different options, 
-please download the latest version Fraktjakt's API-documentation at:
-http://www.fraktjakt.se/services/download
-
-While you develop and tests your installation you should set :debug to true. This will send your calls to the test-server
-and prevent you from making any real orders. 
+	This plugin doesn't depend on anything except the Ruby standard library
+	
+	To install the plugin itself, simply just drop the whole directory into your application's "vendor/plugins" directory. 
+	  Starting with version 1.0rc of rails, it will be automatically picked for you by rails plugin mechanism.
+	
+	Don't forget to generate rdoc
+	rake doc:plugins
+	
+	For more information about different options, 
+	please download the latest version Fraktjakt's API-documentation at:
+	http://www.fraktjakt.se/services/download
+	
+	While you develop and tests your installation you should set :debug to true. This will send your calls to the test-server
+	and prevent you from making any real orders. 
 
 
 === Configuration Possibilities with Fraktjakt
@@ -138,9 +138,12 @@ and prevent you from making any real orders.
       @error_message = $!
     end
     
-    # Consignor is the buyer of the shipment. Usually also the
+    # The consignor is the buyer of the shipment. Usually also the
     # same as the sender. 
     #
+    # :value => 4 is telling the search-engine that the value of the stuff being sent is 4 (SKR).
+    # Some shipping_products change price depending on the value of the stuff being transported.
+    # 
     # found in the webshops profile page in Fraktjakt - Prod 
     # http://api1.fraktjakt.se/webshops/install
     # @shipment_id will later be used to place an order in Fraktjakt

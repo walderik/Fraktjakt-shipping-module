@@ -73,7 +73,8 @@ module Fraktjakt #:nodoc:
     #            @error_message = $!
     #          end
     #
-    #    4. The result comes as a shipment_id (used in the order-call), warning-messages (if any) and an array of SearchResult-objects (if any result are found)
+    #    4. The result comes as a shipment_id (used in the order-call), warning-messages (if any) 
+    #       and an array of SearchResult-objects (if any result are found)
     #
     #    5. Present the search-result in your application:
     #       <% if @error_message.blank? %>
@@ -96,7 +97,7 @@ module Fraktjakt #:nodoc:
     # 
     #   Required options are:
     #     Float
-    #       value       : The value of the shipment
+    #       value       : The value of the stuff being sent
     #     Other
     #       address     : A hash that defines where to send the shipment. See above for the corrent format. 
     # 
@@ -163,6 +164,7 @@ module Fraktjakt #:nodoc:
         shipment_id, dummy = get_text(shipment.elements['id'], "Sändningen saknar id.")
         prods = get_element(shipment.elements['shipping_products'], "Inga frakttjänster funna som matchar ett sådant paket.")
         prods.elements.each do |prod|
+          RAILS_DEFAULT_LOGGER.debug "--> res product = " + prod.to_s if @debug
           id, dummy   = get_text(prod.elements['id'], "ID saknas för resultatet.")
           desc, dummy = get_text(prod.elements['description'], "Namn saknas för resultatet.")
           time, dummy = get_text(prod.elements['arrival_time'], "Ankomsttid saknas för resultatet.", false)
@@ -494,18 +496,19 @@ module Fraktjakt #:nodoc:
   #   Each object is a description of a shipping_product
   #   id - the id of the shipping_product as integer
   #   desc - The name and description of the product
-  #   time - transportation-time
+  #   time - transportation-time (has an alias in arrival_time)
   #   price - price for the transportation. Probably the most important value. Float.
   #   tax_class - Vat if any (0% or 25%). Float.
   #   agent_info - Information about the closest agent, if applicable.
   #   agent_link - A link to find the closest agent.
   class SearchResult
-    attr_reader :id, :desc, :time, :price, :tax_class, :agent_info, :agent_link, :agent_in_info, :agent_in_link
+    attr_reader :id, :desc, :time, :arrival_time, :price, :tax_class, :agent_info, :agent_link, :agent_in_info, :agent_in_link
     
     def initialize(id, desc, time, price, tax_class, agent_info, agent_link, agent_in_info, agent_in_link) #:nodoc:
       @id = id.to_i
       @desc = desc
       @time = time
+      @arrival_time = @time
       @price = price.to_f
       @tax_class = tax_class.to_i
       @agent_info = agent_info
