@@ -173,7 +173,7 @@ module Fraktjakt #:nodoc:
           agent_info, dummy = get_text(prod.elements['agent_info'], "Ombudsinfo saknas för resultatet.", false)
           agent_link, dummy = get_text(prod.elements['agent_link'], "Ombudslänken saknas för resultatet.", false)
           agent_in_info, dummy = get_text(prod.elements['agent_in_info'], "Inlämnings-Ombudsinfo saknas för resultatet.", false)
-          agent_in_link, dummy = get_text(prod.elements['agent_link'], "Inlämnings-Ombudslänken saknas för resultatet.", false)
+          agent_in_link, dummy = get_text(prod.elements['agent_in_link'], "Inlämnings-Ombudslänken saknas för resultatet.", false)
           search_results << SearchResult.new(id, desc, time, price, tax_class, agent_info, agent_link, agent_in_info, agent_in_link)
         end
       else
