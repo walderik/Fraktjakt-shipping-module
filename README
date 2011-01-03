@@ -170,9 +170,24 @@
     rescue Fraktjakt::FraktjaktError
       @error_message = $!
     end
-    # @order_link is an optional link that will be returned when 
+    # @order_link is an optional link that will be returned ONLY when 
     # the option :sender_email is provided.
+    # Otherwise it will be set to nil.
   end 
+
+
+	def track
+    shipment_id = params[:id]
+    fraktjakt = Fraktjakt::Fraktjakt.new(
+      :consignor_id => 2,
+      :consignor_key => '04c959d8259e811342e01d5025bb35e460eb105e',
+      :debug => true )
+    begin
+      @warning, @results = fraktjakt.track(:shipment_id => shipment_id)
+    rescue Fraktjakt::FraktjaktError
+      @error_message = $!
+    end
+  end
   
 end
 
@@ -208,12 +223,31 @@ end
   <b>Shipment_id: <%= @shipment_id %></b><br />
   <b>Warnings: <%= @warnings %></b><br />
   <b>Order_id: <%= @order_id %></b><br />
+  <b>Shipping Labels: <%= @order_link %></b><br />
   <br />
 <%else%>
  <h1> No search result due to:<br />
   <%= @error_message %></h1>
 <%end%>
 
+
+==== track.html.erb
+
+<% if @error_message.blank? %>
+  <h1>Results</h1>
+  <% @results.each do |r| %>
+    <%= debug r%><br />
+    <b>Shipment_id: <%= r.shipment_id %></b><br />
+    <b>Status: <%= r.name %></b><br />
+    <b>Id: <%= r.id %></b><br />
+    <b>Fraktjakt_id: <%= r.fraktjakt_id %></b><br />
+    <br />
+  <%end%>
+  <br />
+<%else%>
+ <h1> No search result due to:<br />
+  <%= @error_message %></h1>
+<%end%>
 
 
 == More information

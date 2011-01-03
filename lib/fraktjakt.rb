@@ -10,6 +10,7 @@ module Fraktjakt #:nodoc:
     REQUIRED_OPTIONS = {
       :base           => [ :consignor_id, :consignor_key ], 
       :order          => [ :shipping_product_id, :recipient ],
+      :track          => [ :shipment_id ],
       :address        => [ :street1, :city_name ],
       :parcel         => [ :weight, :length, :height, :width ],
       :commodity      => [ :name, :quantity ]
@@ -41,6 +42,16 @@ module Fraktjakt #:nodoc:
       @language = options[:language] || 'sv'  # in ISO 639-1 notation
       @debug = options[:debug]
       RAILS_DEFAULT_LOGGER.debug "--> Fraktjakt options #{options.inspect}" if @debug
+      host =  Socket.gethostbyname('localhost').first || "localhost"
+      if host =~/bwl/ 
+        @test_url = "192.168.66.18:3011"
+        @test_url = "127.0.0.1:3001"
+        @prod_url = "192.168.66.19:3011"
+      else
+        @test_url = "api2.fraktjakt.se"
+        @prod_url = "api1.fraktjakt.se"
+      end
+      @url = (@debug) ? @test_url : @prod_url
     end
     
     
@@ -133,19 +144,16 @@ module Fraktjakt #:nodoc:
     def shipment(options = {})
       options[:value] = '1.0' if options[:value].blank? || options[:value].to_f < 1
       RAILS_DEFAULT_LOGGER.debug "--> parcels = #{@parcels}" if @debug
+      RAILS_DEFAULT_LOGGER.debug "--> address_to = #{(options[:address]||options[:address_to]).to_json}" if @debug
       xml = xml_header('shipment')
       xml += xml_shipment_options(options)
       xml += xml_parcels
       xml += xml_address('address_from', set_address(options[:address_from])) unless options[:address_from].nil?
-      xml += xml_address('address_to', set_address(options[:address])) unless options[:address].nil?
+      xml += xml_address('address_to', set_address(options[:address]||options[:address_to])) unless (options[:address]||options[:address_to]).nil?
       xml += '</shipment>'
       RAILS_DEFAULT_LOGGER.debug "--> xml = #{xml.inspect}" if @debug
       xml = CGI.escape(xml||"") #.gsub(/\+/,' ')
-      if @debug
-        url = URI.parse('http://192.168.66.18:3011/fraktjakt/query_xml?xml='+xml)
-      else
-        url = URI.parse('http://192.168.66.19:3011/fraktjakt/query_xml?xml='+xml)
-      end  
+      url = URI.parse("http://#{@url}/fraktjakt/query_xml?xml="+xml)
       search_results = Array.new
       res = Net::HTTP.get_response url
       RAILS_DEFAULT_LOGGER.debug "--> res = " + res.inspect if @debug
@@ -154,11 +162,13 @@ module Fraktjakt #:nodoc:
         body = res.body
         root = get_element(REXML::Document.new(body), "Anropet är inte en korrekt XML.")
         shipment = get_element(root.elements['shipment'], "Priserna från Fraktjakt kan för närvarande inte hämtas.")
+        shipment_id = shipment_id.to_i unless shipment_id.nil?
         code, dummy = get_text(shipment.elements['code'], "Priserna kan inte hämtas.")
-        if code.to_i == 2
+        code = code.to_i unless code.nil?
+        if code == 2
           error_message, dummy = get_text(shipment.elements['error_message'], "Priserna kan inte hämtas.")
           raise FraktjaktError.new(error_message)
-        elsif code.to_i == 1
+        elsif code == 1
           warning_message = get_text(shipment.elements['warning_message'], "Priserna kan hämtas.", false)
         end
         shipment_id, dummy = get_text(shipment.elements['id'], "Sändningen saknar id.")
@@ -241,8 +251,9 @@ module Fraktjakt #:nodoc:
     #       reference    : Free text that refers to the order in Fraktjakt. 
     #                      This element may contain your own system's order ID, an identifying text, or some other. 
     #                      This text will appear on your shipping labels.
-    #       sender_email : Only applies to pre-paid shipping : The e-mail address of the person who will be 
-    #                      handling the shipment, if not the consignor. Creates an extra link in the reply and an email is sent to that address.
+    #       sender_email : The e-mail address of the person who will be 
+    #                      handling the shipment, if not the consignor. 
+    #                      Creates an extra link in the reply and an email is sent to that address when the order is paid.
     #
     #   In additions you can also provide booking information as in the example above. 
     #       This is not the recomended way to make a booking and are totaly optional.
@@ -264,11 +275,7 @@ module Fraktjakt #:nodoc:
       xml += '</order>'
       RAILS_DEFAULT_LOGGER.debug "--> xml = #{xml.inspect}" if @debug
       xml = CGI.escape(xml||"") 
-      if @debug
-        url = URI.parse('http://192.168.66.18:3011/orders/order_xml?xml='+xml)
-      else
-        url = URI.parse('http://192.168.66.19:3011/orders/order_xml?xml='+xml)
-      end
+      url = URI.parse("http://#{@url}/orders/order_xml?xml="+xml)
 
       search_results = Array.new
       res = Net::HTTP.get_response url
@@ -283,15 +290,67 @@ module Fraktjakt #:nodoc:
           error_message, dummy = get_text(result.elements['error_message'], "Priserna kan inte hämtas.")
           raise FraktjaktError.new(error_message)
         elsif code.to_i == 1
-          warning_message = get_text(result.elements['warning_message'], "Priserna kan hämtas.", false)
+          warning_message, dummy = get_text(result.elements['warning_message'], "Priserna kan hämtas.", false)
         end
-        shipment_id = get_text(result.elements['shipment_id'], "Fraktjakt kan för närvarande inte hämta aktuell shipment.")
-        order_id = get_text(result.elements['order_id'], "Ingen order skapad i Fraktjakt.")
-        sender_email_link = get_text(result.elements['sender_email_link'], "Ingen länk skickad med resultatet.", false)
+        shipment_id, dummy = get_text(result.elements['shipment_id'], "Fraktjakt kan för närvarande inte hämta aktuell shipment.")
+        shipment_id = shipment_id.to_i unless shipment_id.nil?
+        order_id, dummy = get_text(result.elements['order_id'], "Ingen order skapad i Fraktjakt.")
+        order_id = order_id.to_i unless order_id.nil?
+        sender_email_link, dummy = get_text(result.elements['sender_email_link'], "Ingen länk skickad med resultatet.", false)
       else
         raise FraktjaktError.new("Vi har för närvarande ingen kontakt med Fraktjakt.")
       end
       return warning_message, shipment_id, order_id, sender_email_link
+    end
+    
+    
+    # The method to track a shipment in Fraktjakt
+    #     To track a shipment follow these steps:
+    #
+    #    1. Create a Fraktjakt-object
+    #          fraktjakt = Fraktjakt::Fraktjakt.new( :consignor_id => 2, :consignor_key => '04c959d8259e811342e01d5025bb35e460eb105e', :debug => true )
+    #    
+    #    2. find the id for the shipment you want to track. 
+    #       It should be the id returned from the order. Not the one returned from the wuery, since it might be a different one.
+    #       Also be aware that Fraktjakt might split one shipment into several shipments and that each one of
+    #       these might be in a different status. This is done for all products that are handled by an agent
+    #
+    #    3. Make the call.
+    #       @warning, @results = fraktjakt.track(:shipment_id => shipment_id)
+    def track(options = {})
+      check_required_options(:track, options)
+      url = URI.parse("http://#{@url}/trace/xml_trace/"+options[:shipment_id].to_i.to_s)
+      search_results = Array.new
+      res = Net::HTTP.get_response url
+      track_results = Array.new
+      case res
+      when Net::HTTPSuccess, Net::HTTPRedirection
+        body = res.body
+        root = get_element(REXML::Document.new(body), "Anropet är inte en korrekt XML.")
+        result = get_element(root.elements['result'], "Fraktjakt kan inte skapa en sökning.")
+        code, dummy = get_text(result.elements['code'], "Tracking-info kan inte hämtas.", false)
+        if code.to_i == 2
+          error_message, dummy = get_text(result.elements['error_message'], "Tracking-information kan inte hämtas.")
+          raise FraktjaktError.new(error_message)
+        elsif code.to_i == 1
+          warning_message, dummy = get_text(result.elements['warning_message'], "Tracking-information kan hämtas.", false)
+        end
+        RAILS_DEFAULT_LOGGER.debug "--> result = " + result.to_s if @debug
+        shipping_states_element = get_element(result.elements['shipping_states'], "Sökningen gav inget resultat.")
+        shipping_states_element.elements.each do |shipping_state_element|
+          shipment_id, dummy = get_text(shipping_state_element.elements['shipment_id'], "Fraktjakt kan för närvarande inte hämta aktuell status.")
+          shipment_id = shipment_id.to_i unless shipment_id.nil?
+          name, dummy = get_text(shipping_state_element.elements['name'], "Saknas i Fraktjakt.")
+          id, dummy = get_text(shipping_state_element.elements['id'], "Saknas i Fraktjakt.")
+          id = id.to_i
+          fraktjakt_id, dummy = get_text(shipping_state_element.elements['fraktjakt_id'], "Saknas i Fraktjakt.")
+          fraktjakt_id = fraktjakt_id.to_i
+          track_results << TrackResult.new(shipment_id, name, id, fraktjakt_id)
+        end
+      else
+        raise FraktjaktError.new("Vi har för närvarande ingen kontakt med Fraktjakt.")
+      end
+      return warning_message, track_results
     end
     
     
@@ -348,8 +407,8 @@ module Fraktjakt #:nodoc:
     
     private
     
+    # Method checking the bare minimum of information
     def check_required_options(option_set_name, options = {}) #:nodoc:
-      # Method checking the bare minimum of information
       required_options = REQUIRED_OPTIONS[option_set_name]
       missing = []
       required_options.each{|option| missing << option if options[option].nil?}      
@@ -359,16 +418,17 @@ module Fraktjakt #:nodoc:
       end
     end
     
+    # Setting a address with needed data
     def set_address(address) #:nodoc:
-      # Setting a address with needed data
+      RAILS_DEFAULT_LOGGER.debug "--> SET ADDRESS #{address.inspect}"
       check_required_options(:address, address)
       address[:residential] = true if address[:residential].nil?
       address[:country_code] = 'SE' if address[:country_code].nil?
       return address
     end
     
+    # Standard first tags in the XMl to Fraktjakt
     def xml_header(type) #:nodoc:
-      # Standard first tags in the XMl to Fraktjakt
       res  = '<?xml version=\\"1.0\\" encoding=\\"iso-8859-1\\"?>'
       res += "<#{type.to_s}>" 
       res += "<consignor><id>#{@consignor_id}</id><key>#{@consignor_key}</key>"
@@ -385,7 +445,8 @@ module Fraktjakt #:nodoc:
     end
     
     def xml_order_options(options) #:nodoc:
-      res += build_option_tag(:integer, ['shipment_id', 'shipping_product_id'], options)
+      RAILS_DEFAULT_LOGGER.debug "--> xml_order_options options = #{options.inspect}" if @debug
+      res = build_option_tag(:integer, ['shipment_id', 'shipping_product_id'], options)
       res += build_option_tag(:float, ['value'], options)
       res += build_option_tag(:string, ['sender_email'], options)
       return res
@@ -394,7 +455,6 @@ module Fraktjakt #:nodoc:
     def build_option_tag(option_type, available_options, options_in) #:nodoc:
       res = ''
       available_options.each do |option|
-        RAILS_DEFAULT_LOGGER.debug "--> options[#{option.to_sym}] = #{options_in[option.to_sym]}" if @debug
         tag_value = case option_type
           when :boolean then options_in[option.to_sym]
           when :integer then options_in[option.to_sym].to_i
@@ -482,7 +542,7 @@ module Fraktjakt #:nodoc:
       text = the_element.text
       raise FraktjaktError.new(error_text+" Textvärdet saknas.") if text.nil? && mandatory
       notice = error_text if text.nil?
-      text = text.first if text.class=='Array'
+      text = text.first if text.class.to_s == 'Array'
       return text, notice
     end    
     
@@ -516,7 +576,30 @@ module Fraktjakt #:nodoc:
       @agent_in_info = agent_in_info
       @agent_in_link = agent_in_link
     end
+  end
+  
+  # The result from a track-query in Fraktjakt
+  #   The result from Fraktjakt are saved as an array of this class
+  #   shipment_id - Id for the shipment. Might be a different one than the one sent in the call.
+  #   Name - Status as text.
+  #   Fraktjakt_id - Fraktjakt's internal status as a number
+  #   Id - Status as a number 
+  #     The meaning of the different numbers:
+  #          0 – Handled by the sender
+  #          1 – Sent
+  #          2 – Delivered
+  #          3 – Signed
+  #          4 - Returned
+  #
+  class TrackResult
+    attr_reader :shipment_id, :name, :id, :fraktjakt_id
     
+    def initialize(shipment_id, name, id, fraktjakt_id) #:nodoc:
+      @shipment_id = shipment_id.to_i
+      @name = name
+      @id = id
+      @fraktjakt_id = fraktjakt_id
+    end
   end
   
 end # Module
