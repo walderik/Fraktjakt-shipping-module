@@ -3,7 +3,7 @@ module Fraktjakt #:nodoc:
   class MissingInformationError < StandardError; end #:nodoc:
   class FraktjaktError < StandardError; end #:nodoc
   
-  # Provides access to Fraktjakt Services
+  # Main class that provides access to Fraktjakt Services
   class Fraktjakt
     
     # Defines the required parameters for various methods
@@ -43,9 +43,9 @@ module Fraktjakt #:nodoc:
       @debug = options[:debug]
       RAILS_DEFAULT_LOGGER.debug "--> Fraktjakt options #{options.inspect}" if @debug
       host =  Socket.gethostbyname('localhost').first || "localhost"
-      if host =~/bwl/ 
+      if host =~/bwl/  || host =~ /bitwise/ || host =~ /muls/
+        # Local test inställningar för slippa gå utanför huset
         @test_url = "192.168.66.18:3011"
-        @test_url = "127.0.0.1:3001"
         @prod_url = "192.168.66.19:3011"
       else
         @test_url = "api2.fraktjakt.se"
@@ -153,6 +153,7 @@ module Fraktjakt #:nodoc:
       xml += '</shipment>'
       RAILS_DEFAULT_LOGGER.debug "--> xml = #{xml.inspect}" if @debug
       xml = CGI.escape(xml||"") #.gsub(/\+/,' ')
+      RAILS_DEFAULT_LOGGER.debug "--> url = http://#{@url}/fraktjakt/query_xml?xml=" if @debug
       url = URI.parse("http://#{@url}/fraktjakt/query_xml?xml="+xml)
       search_results = Array.new
       res = Net::HTTP.get_response url
@@ -184,7 +185,7 @@ module Fraktjakt #:nodoc:
           agent_link, dummy = get_text(prod.elements['agent_link'], "Ombudslänken saknas för resultatet.", false)
           agent_in_info, dummy = get_text(prod.elements['agent_in_info'], "Inlämnings-Ombudsinfo saknas för resultatet.", false)
           agent_in_link, dummy = get_text(prod.elements['agent_in_link'], "Inlämnings-Ombudslänken saknas för resultatet.", false)
-          search_results << SearchResult.new(id, desc, time, price, tax_class, agent_info, agent_link, agent_in_info, agent_in_link)
+          search_results << SearchResult.new(id, desc, time, price, tax_class, agent_info, agent_link, agent_in_info, agent_in_link, shipment_id)
         end
       else
         raise FraktjaktError.new("Vi har för närvarande ingen kontakt med Fraktjakt.")
@@ -254,6 +255,9 @@ module Fraktjakt #:nodoc:
     #       sender_email : The e-mail address of the person who will be 
     #                      handling the shipment, if not the consignor. 
     #                      Creates an extra link in the reply and an email is sent to that address when the order is paid.
+    #       anonymous_sender : Used if you want to put another name as the sender on the shipping documents. 
+    #                      Useful if the receiver don't wan't to show where their parcels comes from or you are 
+    #                      arranging the shipment for someone else.
     #
     #   In additions you can also provide booking information as in the example above. 
     #       This is not the recomended way to make a booking and are totaly optional.
@@ -320,6 +324,7 @@ module Fraktjakt #:nodoc:
     def track(options = {})
       check_required_options(:track, options)
       url = URI.parse("http://#{@url}/trace/xml_trace/"+options[:shipment_id].to_i.to_s)
+      RAILS_DEFAULT_LOGGER.debug "--> url = " + url.to_s if @debug
       search_results = Array.new
       res = Net::HTTP.get_response url
       track_results = Array.new
@@ -420,7 +425,7 @@ module Fraktjakt #:nodoc:
     
     # Setting a address with needed data
     def set_address(address) #:nodoc:
-      RAILS_DEFAULT_LOGGER.debug "--> SET ADDRESS #{address.inspect}"
+      RAILS_DEFAULT_LOGGER.debug "--> SET ADDRESS #{address.inspect}"  if @debug
       check_required_options(:address, address)
       address[:residential] = true if address[:residential].nil?
       address[:country_code] = 'SE' if address[:country_code].nil?
@@ -448,7 +453,7 @@ module Fraktjakt #:nodoc:
       RAILS_DEFAULT_LOGGER.debug "--> xml_order_options options = #{options.inspect}" if @debug
       res = build_option_tag(:integer, ['shipment_id', 'shipping_product_id'], options)
       res += build_option_tag(:float, ['value'], options)
-      res += build_option_tag(:string, ['sender_email'], options)
+      res += build_option_tag(:string, ['sender_email', 'anonymous_sender'], options)
       return res
     end
     
@@ -520,7 +525,7 @@ module Fraktjakt #:nodoc:
       return res + '</recipient>'
     end
     
-    def xml_booking(booking)
+    def xml_booking(booking) #:nodoc:
       res  = '<booking>'
       res += build_option_tag(:string, ['driving_instruction', 'user_notes', 'pickup_date', 'ready_time', 'close_time'], booking)
       return res + '</booking>'
@@ -546,60 +551,92 @@ module Fraktjakt #:nodoc:
       return text, notice
     end    
     
-  end # Base
+  end 
   
   
   
   
-  # The result from a freight-query in Fraktjakt
-  #   The result from Fraktjakt are saved as an array of this class
-  #   Each object is a description of a shipping_product
-  #   id - the id of the shipping_product as integer
-  #   desc - The name and description of the product
-  #   time - transportation-time (has an alias in arrival_time)
-  #   price - price for the transportation. Probably the most important value. Float.
-  #   tax_class - Vat if any (0% or 25%). Float.
-  #   agent_info - Information about the closest agent, if applicable.
-  #   agent_link - A link to find the closest agent.
-  class SearchResult
-    attr_reader :id, :desc, :time, :arrival_time, :price, :tax_class, :agent_info, :agent_link, :agent_in_info, :agent_in_link
-    
-    def initialize(id, desc, time, price, tax_class, agent_info, agent_link, agent_in_info, agent_in_link) #:nodoc:
-      @id = id.to_i
-      @desc = desc
-      @time = time
-      @arrival_time = @time
-      @price = price.to_f
-      @tax_class = tax_class.to_i
-      @agent_info = agent_info
-      @agent_link = agent_link
-      @agent_in_info = agent_in_info
-      @agent_in_link = agent_in_link
-    end
-  end
   
-  # The result from a track-query in Fraktjakt
-  #   The result from Fraktjakt are saved as an array of this class
-  #   shipment_id - Id for the shipment. Might be a different one than the one sent in the call.
-  #   Name - Status as text.
-  #   Fraktjakt_id - Fraktjakt's internal status as a number
-  #   Id - Status as a number 
-  #     The meaning of the different numbers:
-  #          0 – Handled by the sender
-  #          1 – Sent
-  #          2 – Delivered
-  #          3 – Signed
-  #          4 - Returned
-  #
-  class TrackResult
-    attr_reader :shipment_id, :name, :id, :fraktjakt_id
-    
-    def initialize(shipment_id, name, id, fraktjakt_id) #:nodoc:
-      @shipment_id = shipment_id.to_i
-      @name = name
-      @id = id
-      @fraktjakt_id = fraktjakt_id
-    end
-  end
+  
+#  public
+#  
+#  # The result from a freight-query in Fraktjakt
+#  #   The result from Fraktjakt are saved as an array of this class
+#  #   Each object is a description of a shipping_product
+#  #   id - the id of the shipping_product as integer
+#  #   desc - The name and description of the product
+#  #   time - transportation-time (has an alias in arrival_time)
+#  #   price - price for the transportation. Probably the most important value. Float.
+#  #   tax_class - Vat if any (0% or 25%). Float.
+#  #   agent_info - Information about the closest agent, if applicable.
+#  #   agent_link - A link to find the closest agent.
+#  #   shipment_id - The shipment_id for the searchResult in Fraktjakt
+#  class SearchResult
+#    
+#    attr_reader :id, :desc, :time, :arrival_time, :price, :tax_class, :agent_info, :agent_link, :agent_in_info, :agent_in_link, :shipment_id
+#    
+#    
+#    # Class method to merge search-results-arrays
+#    #   Returning only one instance of a shipping_product and then the most expensive one.
+#    #   Can be called with something like this - results = Fraktjakt::SearchResult.merge_arrays(results1, results2)
+#    def SearchResult.merge_arrays(results1, results2)
+#      results = results1 + results2
+#      return results if results.blank?
+#      uniq_hash = Hash.new
+#      results.each { |result| uniq_hash[result.id] = result if uniq_hash[result.id].nil? || (uniq_hash[result.id].price < result.price) }
+#      new_results = Array.new
+#      uniq_hash.each { |id,result| new_results << result }
+#      new_results.sort! do |a,b|
+#        a_value = (a.price||100000000)
+#        b_value = (b.price||100000000)
+#        a_value = 100000000 if a_value == 0
+#        b_value = 100000000 if b_value == 0
+#        a_value <=> b_value
+#      end
+#      return new_results
+#    end
+#    
+#    def initialize(id, desc, time, price, tax_class, agent_info, agent_link, agent_in_info, agent_in_link, shipment_id) 
+#      @id = id.to_i
+#      @desc = desc
+#      @time = time
+#      @arrival_time = @time
+#      @price = price.to_f
+#      @tax_class = tax_class.to_i
+#      @agent_info = agent_info
+#      @agent_link = agent_link
+#      @agent_in_info = agent_in_info
+#      @agent_in_link = agent_in_link
+#      @shipment_id = shipment_id
+#    end
+#  end
+#  
+#  
+#  
+#  
+#  
+#  # The result from a track-query in Fraktjakt
+#  #   The result from Fraktjakt are saved as an array of this class
+#  #   shipment_id - Id for the shipment. Might be a different one than the one sent in the call.
+#  #   Name - Status as text.
+#  #   Fraktjakt_id - Fraktjakt's internal status as a number
+#  #   Id - Status as a number 
+#  #     The meaning of the different numbers:
+#  #          0 – Handled by the sender
+#  #          1 – Sent
+#  #          2 – Delivered
+#  #          3 – Signed
+#  #          4 - Returned
+#  #
+#  class TrackResult
+#    attr_reader :shipment_id, :name, :id, :fraktjakt_id
+#    
+#    def initialize(shipment_id, name, id, fraktjakt_id) #:nodoc:
+#      @shipment_id = shipment_id.to_i
+#      @name = name
+#      @id = id
+#      @fraktjakt_id = fraktjakt_id
+#    end
+#  end
   
 end # Module
